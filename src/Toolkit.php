@@ -50,11 +50,6 @@ class Toolkit
         return false;
     }
 
-    public function updateRestic(): void
-    {
-        $this->restic->updateRestic();
-    }
-
     public function forgetOldBackups(): void
     {
         $action = new ForgetOldSnapshots();

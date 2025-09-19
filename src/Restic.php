@@ -31,6 +31,8 @@ final class Restic
 {
     public const RESTIC_VERSION = '0.18.0';
 
+    private const RESTIC_BINARY_NAME = 'restic_'.self::RESTIC_VERSION;
+
     private const DOWNLOAD_URL = 'https://github.com/restic/restic/releases/download/v{version}/';
 
     private const SHA_SUMS_FILE = __DIR__.'/../config/restic_sha256sums.txt';
@@ -93,7 +95,7 @@ final class Restic
      * @param string          $resticDirectory The name where the Restic binary is downloaded to. Relative to the backup directory (will be excluded from backups automatically). Default: var/restic
      * @param LoggerInterface $logger          An optional PSR logger
      */
-    public static function create(string $backupDirectory, #[\SensitiveParameter] string $repository, #[\SensitiveParameter] string $password, array $excludes, #[\SensitiveParameter] array $env = [], string $resticDirectory = 'var/restic', LoggerInterface $logger = new NullLogger(),): self
+    public static function create(string $backupDirectory, #[\SensitiveParameter] string $repository, #[\SensitiveParameter] string $password, array $excludes, #[\SensitiveParameter] array $env = [], string $resticDirectory = 'var/restic', LoggerInterface $logger = new NullLogger()): self
     {
         \assert('' !== $repository, 'The repository cannot be empty.');
         \assert('' !== $password, 'The password cannot be empty.');
@@ -149,20 +151,6 @@ final class Restic
         }
 
         return $command->getResult()->getVersion();
-    }
-
-    /**
-     * @throws CouldNotDetermineResticVersionException|CouldNotDetermineBinaryException|CouldNotDownloadException|CouldNotExtractBinaryException|CouldNotVerifyFileIntegrityException
-     */
-    public function updateRestic(): void
-    {
-        $this->ensureBinary();
-
-        if (self::RESTIC_VERSION === $this->getResticVersion()) {
-            return;
-        }
-
-        $this->ensureBinary(true);
     }
 
     public function getItemsToBackup(): array
@@ -301,14 +289,9 @@ final class Restic
      */
     private function ensureSetup(): void
     {
-        $this->ensureDirectory();
+        (new Filesystem())->mkdir($this->pathForResticDir());
         $this->ensureBinary();
         $this->ensureInit();
-    }
-
-    private function ensureDirectory(): void
-    {
-        (new Filesystem())->mkdir($this->pathForResticDir());
     }
 
     private function pathForResticDir(string ...$paths): string
@@ -323,9 +306,9 @@ final class Restic
     /**
      * @throws CouldNotDetermineBinaryException|CouldNotDownloadException|CouldNotExtractBinaryException|CouldNotVerifyFileIntegrityException
      */
-    private function ensureBinary(bool $forceUpdate = false): void
+    private function ensureBinary(): void
     {
-        if (!$forceUpdate && file_exists($this->getResticBinary())) {
+        if (file_exists($this->getResticBinary())) {
             return;
         }
 
@@ -337,9 +320,18 @@ final class Restic
             throw new CouldNotDetermineBinaryException($uname);
         }
 
+        $fs = new Filesystem();
+
+        // Cleanup binary directory first, so we don't keep old Restic releases
+        $fs->remove($this->pathForResticDir('binary'));
+        $fs->mkdir($this->pathForResticDir('binary'));
+
+        // Determine compressed and uncompressed target names and create empty files
         $binarySourceName = str_replace('{version}', self::RESTIC_VERSION, $binarySourceName);
-        $targetCompressed = $this->dumpEmptyResticBinary($binarySourceName);
-        $targetUncompressed = $this->dumpEmptyResticBinary();
+        $targetCompressed = $this->pathForResticDir('binary', $binarySourceName);
+        $targetUncompressed = $this->getResticBinary();
+        $fs->dumpFile($targetCompressed, '');
+        $fs->dumpFile($targetUncompressed, '');
 
         $client = HttpClient::create();
 
@@ -353,8 +345,8 @@ final class Restic
             }
             fclose($fileHandle);
         } catch (\Symfony\Contracts\HttpClient\Exception\ExceptionInterface $e) {
-            (new Filesystem())->remove($targetCompressed);
-            (new Filesystem())->remove($targetUncompressed);
+            $fs->remove($targetCompressed);
+            $fs->remove($targetUncompressed);
 
             throw new CouldNotDownloadException('Could not download '.$binarySourceName, 0, $e);
         }
@@ -370,22 +362,13 @@ final class Restic
         }
 
         // Ensure file permissions and cleanup
-        (new Filesystem())->chmod($targetUncompressed, 744);
-        (new Filesystem())->remove($targetCompressed);
+        $fs->chmod($targetUncompressed, 744);
+        $fs->remove($targetCompressed);
     }
 
-    private function getResticBinary(string $binaryName = 'restic'): string
+    private function getResticBinary(): string
     {
-        return $this->pathForResticDir('binary', $binaryName);
-    }
-
-    private function dumpEmptyResticBinary(string $binaryName = 'restic'): string
-    {
-        $target = $this->getResticBinary($binaryName);
-        $fs = new Filesystem();
-        $fs->dumpFile($target, '');
-
-        return $target;
+        return $this->pathForResticDir('binary', self::RESTIC_BINARY_NAME);
     }
 
     private function ensureInit(): void
