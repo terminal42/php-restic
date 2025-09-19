@@ -1,0 +1,5 @@
+/.phpunit.cache
+/tests/Fixtures/**/var/restic
+/var
+/vendor
+composer.lock

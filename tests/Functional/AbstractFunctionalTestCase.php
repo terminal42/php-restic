@@ -1,0 +1,47 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Terminal42\Restic\Test\Functional;
+
+use PHPUnit\Framework\TestCase;
+use Symfony\Component\Filesystem\Filesystem;
+use Terminal42\Restic\Restic;
+use Terminal42\Restic\Toolkit;
+
+abstract class AbstractFunctionalTestCase extends TestCase
+{
+    protected string $backupPath = __DIR__.'/../../var/backup';
+
+    protected function createRestic(string $backupDirectory, array $excludes = [], string|null $backupPath = null): Restic
+    {
+        $fs = new Filesystem();
+        $backupPath = $backupPath ?? $this->backupPath;
+
+        if (is_dir($backupPath)) {
+            $fs->remove($backupPath);
+        }
+
+        $fs->mkdir($backupPath);
+        $backupPath = realpath($backupPath);
+
+        $fs->remove($backupDirectory.'/var');
+
+        return Restic::create(
+            $backupDirectory,
+            $backupPath,
+            '12345678',
+            $excludes,
+        );
+    }
+
+    protected function createToolkit(string $backupDirectory, array $excludes = [], string|null $backupPath = null): Toolkit
+    {
+        return new Toolkit($this->createRestic($backupDirectory, $excludes, $backupPath));
+    }
+
+    protected static function getFixtureDirectory(string $fixture): string
+    {
+        return realpath(__DIR__.'/../Fixtures/'.$fixture);
+    }
+}
