@@ -11,21 +11,16 @@ use Terminal42\Restic\Toolkit;
 
 abstract class AbstractFunctionalTestCase extends TestCase
 {
-    protected string $backupPath = __DIR__.'/../../var/backup';
+    private string $backupPath = __DIR__.'/../../var/backup';
+
+    private string $restorePath = __DIR__.'/../../var/restore';
 
     protected function createRestic(string $backupDirectory, array $excludes = [], string|null $backupPath = null): Restic
     {
-        $fs = new Filesystem();
         $backupPath = $backupPath ?? $this->backupPath;
+        $backupPath = $this->ensureDirectoryExistsAndIsEmpty($backupPath);
 
-        if (is_dir($backupPath)) {
-            $fs->remove($backupPath);
-        }
-
-        $fs->mkdir($backupPath);
-        $backupPath = realpath($backupPath);
-
-        $fs->remove($backupDirectory.'/var');
+        (new Filesystem())->remove($backupDirectory.'/var');
 
         return Restic::create(
             $backupDirectory,
@@ -43,5 +38,19 @@ abstract class AbstractFunctionalTestCase extends TestCase
     protected static function getFixtureDirectory(string $fixture): string
     {
         return realpath(__DIR__.'/../Fixtures/'.$fixture);
+    }
+
+    protected function getRestorePath(): string
+    {
+        return $this->ensureDirectoryExistsAndIsEmpty($this->restorePath);
+    }
+
+    private function ensureDirectoryExistsAndIsEmpty(string $directory): string
+    {
+        $fs = new Filesystem();
+        $fs->remove($directory);
+        $fs->mkdir($directory);
+
+        return realpath($directory);
     }
 }

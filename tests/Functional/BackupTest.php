@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Terminal42\Restic\Test\Functional;
 
 use PHPUnit\Framework\Attributes\DataProvider;
+use Symfony\Component\Finder\Finder;
+use Symfony\Component\Finder\SplFileInfo;
 use Terminal42\Restic\Dto\Snapshot;
 use Terminal42\Restic\Restic;
 
@@ -113,17 +115,77 @@ class BackupTest extends AbstractFunctionalTestCase
         );
     }
 
+    #[DataProvider('restoreDataProvider')]
+    public function testRestore(string $projectDir, array $pathsToRestore, array $expectedRestoredFiles, int $expectedNumberOfFilesRestored, int $expectedTotalBytes): void
+    {
+        $restorePath = $this->getRestorePath();
+        $toolkit = $this->createToolkit($projectDir);
+        $snapshotId = $toolkit->createBackup();
+
+        $result = $toolkit->restoreBackup($snapshotId, $restorePath, $pathsToRestore);
+
+        $restoredFiles = array_values(array_map(static fn (SplFileInfo $file) => $file->getRelativePathname(), iterator_to_array(Finder::create()->in($restorePath)->sortByName())));
+
+        $this->assertSame($expectedRestoredFiles, $restoredFiles);
+        $this->assertSame($expectedNumberOfFilesRestored, $result->getNumberOfFilesRestored());
+        $this->assertSame($expectedTotalBytes, $result->getTotalBytes());
+    }
+
+    public static function restoreDataProvider(): iterable
+    {
+        yield 'Regular backup' => [
+            self::getFixtureDirectory('regular-backup'),
+            [],
+            [
+                'config',
+                'config/config.yaml',
+                'src',
+                'src/Controller',
+                'src/Controller/LuckyController.php',
+                'var',
+            ],
+            6,
+            488,
+        ];
+        yield 'Regular backup with only paths' => [
+            self::getFixtureDirectory('regular-backup'),
+            ['src'],
+            [
+                'src',
+                'src/Controller',
+                'src/Controller/LuckyController.php',
+            ],
+            3,
+            449,
+        ];
+
+        yield 'For symlinked and more complex setups it should work just the same but one has to provide the exact path' => [
+            self::getFixtureDirectory('backup-with-releases-and-symlinks').'/releases/42',
+            ['releases/42/src'],
+            [
+                'releases',
+                'releases/42',
+                'releases/42/src',
+                'releases/42/src/Controller',
+                'releases/42/src/Controller/LuckyController.php',
+            ],
+            5,
+            449,
+        ];
+    }
+
     #[DataProvider('backupDataProvider')]
     public function testBackup(array $expectedFiles, string $projectDir, array $excludes = [], string|null $backupPath = null): void
     {
         $toolkit = $this->createToolkit($projectDir, $excludes, $backupPath);
 
-        $toolkit->createBackup();
+        $snapshotId = $toolkit->createBackup();
         $snapshots = $toolkit->listSnapshots();
         $this->assertFalse($snapshots->isEmpty());
         $this->assertCount(1, $snapshots);
 
         $latestId = $snapshots->latest()->getId();
+        $this->assertSame($snapshotId, $latestId);
 
         $files = $toolkit->listFiles($latestId, true)->sortByPath()->toArray(true);
 

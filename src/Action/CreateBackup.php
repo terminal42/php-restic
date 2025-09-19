@@ -60,10 +60,6 @@ class CreateBackup extends AbstractAction
 
     protected function getOnUpdateCallback(SymfonyStyle|null $io = null): callable|null
     {
-        if (null === $io) {
-            return null;
-        }
-
         $lastAdvance = 0;
         $self = $this;
 
@@ -78,11 +74,11 @@ class CreateBackup extends AbstractAction
                 if ('status' === $data['message_type'] && isset($data['percent_done'])) {
                     $advance = ((int) ($data['percent_done'] * 100)) - $lastAdvance;
                     $lastAdvance += $advance;
-                    $io->progressAdvance($advance);
+                    $io?->progressAdvance($advance);
                 }
 
                 if ('verbose_status' === $data['message_type']) {
-                    $io->writeln(\sprintf('[%s] %s', $data['action'], $data['item']), OutputInterface::VERBOSITY_VERBOSE);
+                    $io?->writeln(\sprintf('[%s] %s', $data['action'], $data['item']), OutputInterface::VERBOSITY_VERBOSE);
                 }
 
                 if ('summary' === $data['message_type']) {

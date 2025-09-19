@@ -19,12 +19,13 @@ class CreateBackupResult extends AbstractActionResult
         return $result;
     }
 
+    public function getSnapshotId(): string
+    {
+        return $this->summary['snapshot_id'];
+    }
+
     public function addSummaryToOutput(SymfonyStyle $io): void
     {
-        if ([] === $this->summary) {
-            return;
-        }
-
         $io->table(
             [
                 'Snapshot ID',

@@ -9,6 +9,8 @@ use Terminal42\Restic\Action\CreateBackup;
 use Terminal42\Restic\Action\ForgetOldSnapshots;
 use Terminal42\Restic\Action\ListFiles;
 use Terminal42\Restic\Action\ListSnapshots;
+use Terminal42\Restic\Action\RestoreBackup;
+use Terminal42\Restic\Action\Result\RestoreBackupResult;
 use Terminal42\Restic\Dto\FileCollection;
 use Terminal42\Restic\Dto\SnapshotCollection;
 
@@ -23,9 +25,9 @@ class Toolkit
     }
 
     /**
-     * @return bool True on success, false on error
+     * @return ?string The snapshot ID on success, null on error
      */
-    public function createBackup(bool $dryRun = false, \DateTimeInterface|null $time = null, SymfonyStyle|null $io = null): bool
+    public function createBackup(bool $dryRun = false, \DateTimeInterface|null $time = null, SymfonyStyle|null $io = null): string|null
     {
         $action = new CreateBackup(
             $this->restic->getItemsToBackup(),
@@ -42,12 +44,12 @@ class Toolkit
                 $action->getResult()->addSummaryToOutput($io);
             }
 
-            return true;
+            return $action->getResult()->getSnapshotId();
         }
 
         $io?->error($action->getResult()->getOutput());
 
-        return false;
+        return null;
     }
 
     public function forgetOldBackups(): void
@@ -83,5 +85,13 @@ class Toolkit
     public function getResticVersion(): string
     {
         return $this->restic->getResticVersion();
+    }
+
+    public function restoreBackup(string $snapshotId, string $restorePath, array $pathsToRestore = [], bool $dryRun = false): RestoreBackupResult
+    {
+        $action = new RestoreBackup($snapshotId, $restorePath, $dryRun, $pathsToRestore);
+        $this->restic->runAction($action);
+
+        return $action->getResult();
     }
 }
