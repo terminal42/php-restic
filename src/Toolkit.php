@@ -6,6 +6,7 @@ namespace Terminal42\Restic;
 
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Terminal42\Restic\Action\CreateBackup;
+use Terminal42\Restic\Action\Dump;
 use Terminal42\Restic\Action\ForgetOldSnapshots;
 use Terminal42\Restic\Action\ListFiles;
 use Terminal42\Restic\Action\ListSnapshots;
@@ -93,5 +94,15 @@ class Toolkit
         $this->restic->runAction($action);
 
         return $action->getResult();
+    }
+
+    /**
+     * Dumps a file to the given target file name. In case of a path given, it will create a zip archive, so make sure your $targetFileName
+     * contains ".zip" in that case. If a file was given, it will not compress it, so make sure you use the appropriate target file name.
+     */
+    public function dumpPathOrFile(string $snapshotId, string $pathOrFile, string $targetFileName): void
+    {
+        $action = new Dump($snapshotId, $targetFileName, $pathOrFile);
+        $this->restic->runAction($action);
     }
 }

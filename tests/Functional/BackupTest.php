@@ -115,6 +115,35 @@ class BackupTest extends AbstractFunctionalTestCase
         );
     }
 
+    public function testDump(): void
+    {
+        $restorePath = $this->getRestorePath();
+        $toolkit = $this->createToolkit(self::getFixtureDirectory('regular-backup'));
+        $snapshotId = $toolkit->createBackup();
+
+        // Test dumping a file
+        $toolkit->dumpPathOrFile($snapshotId, 'src/Controller/LuckyController.php', $restorePath.'/LuckyController.php');
+        $this->assertFileEquals(
+            self::getFixtureDirectory('regular-backup').'/src/Controller/LuckyController.php',
+            $restorePath.'/LuckyController.php',
+        );
+
+        // Test dumping an entire path
+        $toolkit->dumpPathOrFile($snapshotId, 'src', $restorePath.'/test.zip');
+        $this->assertFileExists($restorePath.'/test.zip');
+
+        // Unarchive the path and assert the contents
+        $zip = new \ZipArchive();
+        $zip->open($restorePath.'/test.zip');
+        $zip->extractTo($restorePath.'/test');
+        $zip->close();
+
+        $this->assertFileEquals(
+            self::getFixtureDirectory('regular-backup').'/src/Controller/LuckyController.php',
+            $restorePath.'/test/src/Controller/LuckyController.php',
+        );
+    }
+
     #[DataProvider('restoreDataProvider')]
     public function testRestore(string $projectDir, array $pathsToRestore, array $expectedRestoredFiles, int $expectedNumberOfFilesRestored, int $expectedTotalBytes): void
     {
