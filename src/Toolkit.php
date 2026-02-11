@@ -25,6 +25,11 @@ class Toolkit
     {
     }
 
+    public function reset(): void
+    {
+        $this->restic->reset();
+    }
+
     /**
      * @return ?string The snapshot ID on success, null on error
      */

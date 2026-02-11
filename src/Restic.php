@@ -74,6 +74,8 @@ final class Restic
         'arm' => 'arm',
     ];
 
+    private bool $isInitialized = false;
+
     private array $backupItemsConfig = [];
 
     private function __construct(
@@ -195,6 +197,12 @@ final class Restic
         $client = HttpClient::create();
         $response = $client->request('GET', $url);
         file_put_contents(self::SHA_SUMS_FILE, $response->getContent());
+    }
+
+    public function reset(): void
+    {
+        $this->isInitialized = false;
+        $this->backupItemsConfig = [];
     }
 
     private function runActionWithoutSetup(AbstractAction $action, SymfonyStyle|null $io = null): void
@@ -373,10 +381,16 @@ final class Restic
 
     private function ensureInit(): void
     {
+        if ($this->isInitialized) {
+            return;
+        }
+
         $action = new InitRepository();
         $this->runActionWithoutSetup($action);
 
         if ($action->getResult()->wasSuccessful()) {
+            $this->isInitialized = true;
+
             return;
         }
 
