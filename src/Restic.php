@@ -248,7 +248,13 @@ final class Restic
         ;
 
         foreach ($symlinks as $symlink) {
-            $directoriesToBackup[] = Path::makeAbsolute($symlink->getLinkTarget(), $this->backupDirectory);
+            $resolvedTarget = Path::makeAbsolute($symlink->getLinkTarget(), $this->backupDirectory);
+
+            if (!is_dir($resolvedTarget)) {
+                continue;
+            }
+
+            $directoriesToBackup[] = $resolvedTarget;
         }
 
         // Symlinks might be outside the project root, we have to find the common base
