@@ -11,7 +11,7 @@ class CreateBackupResult extends AbstractActionResult
 {
     private array $summary = [];
 
-    public static function withSummary(string $output, array $summary, ProcessFailedException|null $exception = null)
+    public static function withSummary(string $output, array $summary, ProcessFailedException|null $exception = null): self
     {
         $result = new self($output, $exception);
         $result->summary = $summary;
@@ -46,5 +46,10 @@ class CreateBackupResult extends AbstractActionResult
                 $this->summary['dirs_unmodified'],
             ]],
         );
+    }
+
+    protected function getWarningOnlyExitCodes(): array
+    {
+        return [3];
     }
 }

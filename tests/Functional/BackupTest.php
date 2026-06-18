@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Terminal42\Restic\Test\Functional;
 
 use PHPUnit\Framework\Attributes\DataProvider;
+use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Finder\SplFileInfo;
 use Terminal42\Restic\Dto\Snapshot;
@@ -221,6 +222,28 @@ class BackupTest extends AbstractFunctionalTestCase
         $this->assertSame($expectedFiles, $files);
     }
 
+    public function testBackupIgnoresBrokenSymlinkTargets(): void
+    {
+        $projectDir = $this->createTemporaryProjectWithBrokenSymlink();
+
+        try {
+            $toolkit = $this->createToolkit($projectDir);
+            $snapshotId = $toolkit->createBackup();
+
+            $this->assertNotNull($snapshotId);
+            $this->assertSame(
+                [
+                    '/config [isFile: false, size: 0]',
+                    '/config/config.yaml [isFile: true, size: 9]',
+                    '/var [isFile: false, size: 0]',
+                ],
+                $toolkit->listFiles($snapshotId, true)->sortByPath()->toArray(true),
+            );
+        } finally {
+            (new Filesystem())->remove($projectDir);
+        }
+    }
+
     public static function backupDataProvider(): iterable
     {
         yield 'Regular backup' => [
@@ -286,5 +309,16 @@ class BackupTest extends AbstractFunctionalTestCase
             ['src/Controller'],
             self::getFixtureDirectory('regular-backup').'/var/restic-backups',
         ];
+    }
+
+    private function createTemporaryProjectWithBrokenSymlink(): string
+    {
+        $projectDir = sys_get_temp_dir().'/php-restic-broken-symlink-'.bin2hex(random_bytes(6));
+        $filesystem = new Filesystem();
+        $filesystem->mkdir([$projectDir.'/config', $projectDir.'/var']);
+        file_put_contents($projectDir.'/config/config.yaml', "foo: bar\n");
+        symlink('missing-target', $projectDir.'/broken-link');
+
+        return $projectDir;
     }
 }

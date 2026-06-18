@@ -226,6 +226,8 @@ final class Restic
         // Log all issues as error
         if (!$action->getResult()->wasSuccessful()) {
             $this->logger->error(\sprintf('[Restic action error | %s] %s', basename(str_replace('\\', '/', $action::class)), $action->getResult()->getException()?->getMessage()));
+        } elseif ($action->getResult()->hasWarnings()) {
+            $this->logger->warning(\sprintf('[Restic action warning | %s] %s', basename(str_replace('\\', '/', $action::class)), trim($action->getResult()->getException()?->getProcess()->getErrorOutput() ?? '')));
         }
     }
 

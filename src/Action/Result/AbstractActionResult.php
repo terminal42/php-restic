@@ -16,14 +16,27 @@ class AbstractActionResult
     ) {
     }
 
-    public function wasSuccessful(): bool
-    {
-        return null === $this->exception;
-    }
-
     public function getException(): ProcessFailedException|null
     {
         return $this->exception;
+    }
+
+    public function wasSuccessful(): bool
+    {
+        if (null === $this->exception) {
+            return true;
+        }
+
+        return $this->isWarningOnlyExitCode($this->exception->getProcess()->getExitCode());
+    }
+
+    public function hasWarnings(): bool
+    {
+        if (null === $this->exception) {
+            return false;
+        }
+
+        return $this->isWarningOnlyExitCode($this->exception->getProcess()->getExitCode());
     }
 
     public function getOutput(): string
@@ -38,5 +51,15 @@ class AbstractActionResult
         }
 
         return $this->jsonDecodedOutput;
+    }
+
+    protected function getWarningOnlyExitCodes(): array
+    {
+        return [];
+    }
+
+    private function isWarningOnlyExitCode(int|null $exitCode): bool
+    {
+        return null !== $exitCode && \in_array($exitCode, $this->getWarningOnlyExitCodes(), true);
     }
 }
