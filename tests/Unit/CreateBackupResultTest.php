@@ -10,7 +10,7 @@ use Symfony\Component\Process\PhpProcess;
 use Terminal42\Restic\Action\Result\CreateBackupResult;
 use Terminal42\Restic\Action\Result\ForgetOldSnapshotsResult;
 
-class CreateBackupResultTest extends TestCase
+final class CreateBackupResultTest extends TestCase
 {
     public function testExitCodeThreeIsTreatedAsSuccessfulBackup(): void
     {
@@ -50,6 +50,7 @@ class CreateBackupResultTest extends TestCase
 
         try {
             $process->mustRun();
+
             $this->fail('Expected the process to fail with exit code 3.');
         } catch (ProcessFailedException $exception) {
             return $exception;

@@ -11,6 +11,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\SingleCommandApplication;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\Filesystem\Filesystem;
 use Terminal42\Restic\Restic;
 
 (new SingleCommandApplication())
@@ -27,7 +28,7 @@ use Terminal42\Restic\Restic;
             $pattern = "/public?\\s*const\\s+RESTIC_VERSION\\s*=\\s*'[^']*';/";
             $replacement = "public const RESTIC_VERSION = '{$version}';";
             $updatedContent = preg_replace($pattern, $replacement, $content);
-            file_put_contents($resticClassPath, $updatedContent);
+            (new Filesystem())->dumpFile($resticClassPath, $updatedContent);
 
             if (Restic::RESTIC_VERSION !== $version) {
                 $io->error('Version could not be updated in Restic class.');

@@ -33,6 +33,9 @@ class File
         return \sprintf('%s [isFile: %s, size: %d]', $this->path, $this->isFile ? 'true' : 'false', $this->size);
     }
 
+    /**
+     * @return array{path: string, isFile: bool, size: int}
+     */
     public function toArray(): array
     {
         return [

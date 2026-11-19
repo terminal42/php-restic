@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Terminal42\Restic\Dto;
 
+/**
+ * @extends AbstractCollection<Snapshot>
+ */
 class SnapshotCollection extends AbstractCollection
 {
     public function latest(): Snapshot|null
@@ -20,6 +23,9 @@ class SnapshotCollection extends AbstractCollection
         return $latest;
     }
 
+    /**
+     * @return ($flat is true ? list<string> : list<array{id: string, time: string}>)
+     */
     public function toArray(bool $flat = false): array
     {
         $collection = [];

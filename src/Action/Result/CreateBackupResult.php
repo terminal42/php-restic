@@ -9,8 +9,14 @@ use Symfony\Component\Process\Exception\ProcessFailedException;
 
 class CreateBackupResult extends AbstractActionResult
 {
+    /**
+     * @var array<string, mixed>
+     */
     private array $summary = [];
 
+    /**
+     * @param array<string, mixed> $summary
+     */
     public static function withSummary(string $output, array $summary, ProcessFailedException|null $exception = null): self
     {
         $result = new self($output, $exception);

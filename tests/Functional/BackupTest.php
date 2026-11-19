@@ -11,7 +11,7 @@ use Symfony\Component\Finder\SplFileInfo;
 use Terminal42\Restic\Dto\Snapshot;
 use Terminal42\Restic\Restic;
 
-class BackupTest extends AbstractFunctionalTestCase
+final class BackupTest extends AbstractFunctionalTestCase
 {
     public function testResticVersion(): void
     {
@@ -119,11 +119,13 @@ class BackupTest extends AbstractFunctionalTestCase
     public function testDump(): void
     {
         $restorePath = $this->getRestorePath();
+
         $toolkit = $this->createToolkit(self::getFixtureDirectory('regular-backup'));
         $snapshotId = $toolkit->createBackup();
 
         // Test dumping a file
         $toolkit->dumpPathOrFile($snapshotId, 'src/Controller/LuckyController.php', $restorePath.'/LuckyController.php');
+
         $this->assertFileEquals(
             self::getFixtureDirectory('regular-backup').'/src/Controller/LuckyController.php',
             $restorePath.'/LuckyController.php',
@@ -145,13 +147,17 @@ class BackupTest extends AbstractFunctionalTestCase
         );
     }
 
+    /**
+     * @param array<string> $pathsToRestore
+     * @param array<string> $expectedRestoredFiles
+     */
     #[DataProvider('restoreDataProvider')]
     public function testRestore(string $projectDir, array $pathsToRestore, array $expectedRestoredFiles, int $expectedNumberOfFilesRestored, int $expectedTotalBytes): void
     {
         $restorePath = $this->getRestorePath();
+
         $toolkit = $this->createToolkit($projectDir);
         $snapshotId = $toolkit->createBackup();
-
         $result = $toolkit->restoreBackup($snapshotId, $restorePath, $pathsToRestore);
 
         $restoredFiles = array_values(array_map(static fn (SplFileInfo $file) => $file->getRelativePathname(), iterator_to_array(Finder::create()->in($restorePath)->sortByName())));
@@ -161,6 +167,9 @@ class BackupTest extends AbstractFunctionalTestCase
         $this->assertSame($expectedTotalBytes, $result->getTotalBytes());
     }
 
+    /**
+     * @return iterable<string, array{string, list<string>, list<string>, int, int}>
+     */
     public static function restoreDataProvider(): iterable
     {
         yield 'Regular backup' => [
@@ -204,12 +213,16 @@ class BackupTest extends AbstractFunctionalTestCase
         ];
     }
 
+    /**
+     * @param array<string> $expectedFiles
+     * @param array<string> $excludes
+     */
     #[DataProvider('backupDataProvider')]
     public function testBackup(array $expectedFiles, string $projectDir, array $excludes = [], string|null $backupPath = null): void
     {
         $toolkit = $this->createToolkit($projectDir, $excludes, $backupPath);
-
         $snapshotId = $toolkit->createBackup();
+
         $snapshots = $toolkit->listSnapshots();
         $this->assertFalse($snapshots->isEmpty());
         $this->assertCount(1, $snapshots);
@@ -231,6 +244,7 @@ class BackupTest extends AbstractFunctionalTestCase
             $snapshotId = $toolkit->createBackup();
 
             $this->assertNotNull($snapshotId);
+
             $this->assertSame(
                 [
                     '/config [isFile: false, size: 0]',
@@ -244,6 +258,9 @@ class BackupTest extends AbstractFunctionalTestCase
         }
     }
 
+    /**
+     * @return iterable<string, array{list<string>, string, 2?: list<string>, 3?: string}>
+     */
     public static function backupDataProvider(): iterable
     {
         yield 'Regular backup' => [
@@ -314,10 +331,12 @@ class BackupTest extends AbstractFunctionalTestCase
     private function createTemporaryProjectWithBrokenSymlink(): string
     {
         $projectDir = sys_get_temp_dir().'/php-restic-broken-symlink-'.bin2hex(random_bytes(6));
+
         $filesystem = new Filesystem();
         $filesystem->mkdir([$projectDir.'/config', $projectDir.'/var']);
-        file_put_contents($projectDir.'/config/config.yaml', "foo: bar\n");
-        symlink('missing-target', $projectDir.'/broken-link');
+
+        $filesystem->dumpFile($projectDir.'/config/config.yaml', "foo: bar\n");
+        $filesystem->symlink('missing-target', $projectDir.'/broken-link');
 
         return $projectDir;
     }

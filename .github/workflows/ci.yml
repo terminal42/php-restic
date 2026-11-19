@@ -7,11 +7,11 @@ on:
 permissions: read-all
 
 jobs:
-    ci:
-        uses: 'terminal42/contao-build-tools/.github/workflows/build-tools.yml@main'
+    code-quality:
+        uses: 'terminal42/code-quality-tools/.github/workflows/code-quality.yml@main'
 
     tests:
-        name: Unit tests (PHP ${{ matrix.php }}
+        name: Unit tests (PHP ${{ matrix.php }})
         runs-on: ubuntu-latest
         strategy:
             fail-fast: false
@@ -29,7 +29,7 @@ jobs:
 
             - name: Install the dependencies
               run: |
-                  composer install --no-interaction --no-progress
+                  composer install --no-plugins --no-interaction --no-progress
 
             - name: Run phpunit
-              run: composer unit
+              run: composer unit-tests

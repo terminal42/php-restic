@@ -14,8 +14,15 @@ class CreateBackup extends AbstractAction
 {
     private CreateBackupResult $result;
 
+    /**
+     * @var array<string, mixed>
+     */
     private array $summary = [];
 
+    /**
+     * @param array<string> $itemsToBackup
+     * @param array<string> $excludes
+     */
     public function __construct(
         private readonly array $itemsToBackup,
         private readonly array $excludes,

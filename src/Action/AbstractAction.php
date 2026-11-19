@@ -21,6 +21,7 @@ abstract class AbstractAction
 
         try {
             $process->mustRun($this->getOnUpdateCallback($io));
+
             $this->postRun($io);
             $this->updateResult($process->getOutput());
         } catch (ProcessFailedException $exception) {
@@ -29,6 +30,9 @@ abstract class AbstractAction
         }
     }
 
+    /**
+     * @return array<int|string, string|int>
+     */
     public function getArguments(): array
     {
         return $this->doGetArguments();
@@ -41,6 +45,9 @@ abstract class AbstractAction
         return null;
     }
 
+    /**
+     * @return array<int|string, string|int>
+     */
     abstract protected function doGetArguments(): array;
 
     abstract protected function updateResult(string $output, ProcessFailedException|null $exception = null): void;

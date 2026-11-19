@@ -32,10 +32,8 @@ class Dump extends AbstractAction
         // Always use zip as archive mode for paths
         $arguments[] = '-a';
         $arguments[] = 'zip';
-
         $arguments[] = '--target';
         $arguments[] = $this->targetFileName;
-
         $arguments[] = $this->snapshotId;
         $arguments[] = $this->pathOrFile;
 

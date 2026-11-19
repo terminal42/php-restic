@@ -4,11 +4,14 @@
     "type": "library",
     "require": {
         "php": "^8.2",
-        "ext-zip": "*",
         "ext-bz2": "*",
+        "ext-zip": "*",
+        "psr/log": "^1.1 || ^2.0 || ^3.0",
+        "symfony/console": "^6.4 || ^7.0",
         "symfony/filesystem": "^6.4 || ^7.0",
         "symfony/finder": "^6.4 || ^7.0",
         "symfony/http-client": "^6.4 || ^7.0",
+        "symfony/http-client-contracts": "^3.0",
         "symfony/process": "^6.4 || ^7.0"
     },
     "license": "MIT",
@@ -30,15 +33,26 @@
     ],
     "config": {
         "allow-plugins": {
-            "terminal42/contao-build-tools": true
+            "terminal42/code-quality-tools": true
         }
     },
     "require-dev": {
         "phpunit/phpunit": "^11.5",
-        "symfony/console": "^6.4 || ^7.0",
-        "terminal42/contao-build-tools": "dev-main"
+        "terminal42/code-quality-tools": "dev-main"
     },
     "scripts": {
-        "unit-tests": "@php vendor/bin/phpunit"
+        "unit-tests": "@php vendor/bin/phpunit",
+        "cs-fixer": "@php vendor/terminal42/code-quality-tools/tools/ecs/vendor/bin/ecs check bin src tests/Functional tests/Unit composer-dependency-analyser.php --config vendor/terminal42/code-quality-tools/tools/ecs/config.php",
+        "rector": "@php vendor/terminal42/code-quality-tools/tools/rector/vendor/bin/rector process bin src tests/Functional tests/Unit composer-dependency-analyser.php --config vendor/terminal42/code-quality-tools/tools/rector/config.php --dry-run",
+        "phpstan": "@php vendor/terminal42/code-quality-tools/tools/phpstan/vendor/bin/phpstan analyze bin src tests/Functional tests/Unit --configuration vendor/terminal42/code-quality-tools/tools/phpstan/config.php",
+        "composer-dependencies": "@php vendor/terminal42/code-quality-tools/tools/composer-dependency-analyser/vendor/bin/composer-dependency-analyser --config vendor/terminal42/code-quality-tools/tools/composer-dependency-analyser/config.php",
+        "yaml-lint": "@php vendor/terminal42/code-quality-tools/tools/yamllint/vendor/bin/yaml-lint .github tests/Fixtures",
+        "code-quality": [
+            "@cs-fixer",
+            "@rector",
+            "@phpstan",
+            "@composer-dependencies",
+            "@yaml-lint"
+        ]
     }
 }

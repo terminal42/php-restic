@@ -11,6 +11,9 @@ class RestoreBackup extends AbstractAction
 {
     private RestoreBackupResult $result;
 
+    /**
+     * @param array<string> $paths
+     */
     public function __construct(
         private readonly string $snapshotId,
         private readonly string $targetPath,

@@ -15,9 +15,12 @@ abstract class AbstractFunctionalTestCase extends TestCase
 
     private string $restorePath = __DIR__.'/../../var/restore';
 
+    /**
+     * @param array<string> $excludes
+     */
     protected function createRestic(string $backupDirectory, array $excludes = [], string|null $backupPath = null): Restic
     {
-        $backupPath = $backupPath ?? $this->backupPath;
+        $backupPath ??= $this->backupPath;
         $backupPath = $this->ensureDirectoryExistsAndIsEmpty($backupPath);
 
         (new Filesystem())->remove($backupDirectory.'/var');
@@ -30,6 +33,9 @@ abstract class AbstractFunctionalTestCase extends TestCase
         );
     }
 
+    /**
+     * @param array<string> $excludes
+     */
     protected function createToolkit(string $backupDirectory, array $excludes = [], string|null $backupPath = null): Toolkit
     {
         return new Toolkit($this->createRestic($backupDirectory, $excludes, $backupPath));

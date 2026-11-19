@@ -27,6 +27,9 @@ class Snapshot
         return \sprintf('%s [%s]', $this->id, $this->time->format(\DateTimeInterface::ATOM));
     }
 
+    /**
+     * @return array{id: string, time: string}
+     */
     public function toArray(): array
     {
         return [

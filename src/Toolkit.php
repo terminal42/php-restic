@@ -93,6 +93,9 @@ class Toolkit
         return $this->restic->getResticVersion();
     }
 
+    /**
+     * @param array<string> $pathsToRestore
+     */
     public function restoreBackup(string $snapshotId, string $restorePath, array $pathsToRestore = [], bool $dryRun = false): RestoreBackupResult
     {
         $action = new RestoreBackup($snapshotId, $restorePath, $dryRun, $pathsToRestore);

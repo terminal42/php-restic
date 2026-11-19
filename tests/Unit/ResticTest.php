@@ -8,7 +8,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Terminal42\Restic\Restic;
 
-class ResticTest extends TestCase
+final class ResticTest extends TestCase
 {
     #[DataProvider('determineBinaryProvider')]
     public function testDetermineBinary(string $uname, string|null $expectedBinary): void
@@ -16,6 +16,9 @@ class ResticTest extends TestCase
         $this->assertSame($expectedBinary, Restic::determineBinary($uname));
     }
 
+    /**
+     * @return iterable<int, array{string, string|null}>
+     */
     public static function determineBinaryProvider(): iterable
     {
         yield [

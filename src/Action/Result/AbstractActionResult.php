@@ -8,6 +8,9 @@ use Symfony\Component\Process\Exception\ProcessFailedException;
 
 class AbstractActionResult
 {
+    /**
+     * @var array<array-key, mixed>|null
+     */
     protected array|null $jsonDecodedOutput = null;
 
     public function __construct(
@@ -44,15 +47,19 @@ class AbstractActionResult
         return $this->output;
     }
 
+    /**
+     * @return array<array-key, mixed>
+     */
     protected function getJsonDecodedOutput(): array
     {
-        if (null === $this->jsonDecodedOutput) {
-            $this->jsonDecodedOutput = json_decode(trim($this->getOutput()), true);
-        }
+        $this->jsonDecodedOutput ??= json_decode(trim($this->getOutput()), true);
 
         return $this->jsonDecodedOutput;
     }
 
+    /**
+     * @return list<int>
+     */
     protected function getWarningOnlyExitCodes(): array
     {
         return [];

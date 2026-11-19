@@ -11,6 +11,9 @@ class ListFiles extends AbstractAction
 {
     private ListFilesResult $result;
 
+    /**
+     * @param array<string> $dirs
+     */
     public function __construct(
         private readonly string $snapshotId,
         private readonly bool $recursive,

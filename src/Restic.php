@@ -76,8 +76,15 @@ final class Restic
 
     private bool $isInitialized = false;
 
+    /**
+     * @var array{}|array{commonBasePath: string, includeItems: list<string>, excludes: list<string>}
+     */
     private array $backupItemsConfig = [];
 
+    /**
+     * @param array<string, string> $resticRepoAccessEnv
+     * @param array<string>         $excludes
+     */
     private function __construct(
         private readonly string $backupDirectory,
         private readonly string $resticDirectory,
@@ -89,13 +96,13 @@ final class Restic
     }
 
     /**
-     * @param string          $backupDirectory The absolute path to the directory you want to backup. Usually your project directory.
-     * @param string          $repository      the string DSN for the Restic repository, only absolute local paths or S3 are allowed at the moment
-     * @param string          $password        The password of the Restic repository
-     * @param array           $excludes        an array of excludes, must be **relative** to the backup directory
-     * @param array           $env             An array of Restic env vars. AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY for S3 for example.
-     * @param string          $resticDirectory The name where the Restic binary is downloaded to. Relative to the backup directory (will be excluded from backups automatically). Default: var/restic
-     * @param LoggerInterface $logger          An optional PSR logger
+     * @param string                $backupDirectory The absolute path to the directory you want to backup. Usually your project directory.
+     * @param string                $repository      the string DSN for the Restic repository, only absolute local paths or S3 are allowed at the moment
+     * @param string                $password        The password of the Restic repository
+     * @param array<string>         $excludes        an array of excludes, must be **relative** to the backup directory
+     * @param array<string, string> $env             An array of Restic env vars. AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY for S3 for example.
+     * @param string                $resticDirectory The name where the Restic binary is downloaded to. Relative to the backup directory (will be excluded from backups automatically). Default: var/restic
+     * @param LoggerInterface       $logger          An optional PSR logger
      */
     public static function create(string $backupDirectory, #[\SensitiveParameter] string $repository, #[\SensitiveParameter] string $password, array $excludes, #[\SensitiveParameter] array $env = [], string $resticDirectory = 'var/restic', LoggerInterface $logger = new NullLogger()): self
     {
@@ -155,6 +162,9 @@ final class Restic
         return $command->getResult()->getVersion();
     }
 
+    /**
+     * @return list<string>
+     */
     public function getItemsToBackup(): array
     {
         if ([] === $this->backupItemsConfig) {
@@ -164,6 +174,9 @@ final class Restic
         return $this->backupItemsConfig['includeItems'];
     }
 
+    /**
+     * @return list<string>
+     */
     public function getExcludesFromBackup(): array
     {
         if ([] === $this->backupItemsConfig) {
@@ -194,9 +207,10 @@ final class Restic
     public static function updateShaSumFile(): void
     {
         $url = str_replace('{version}', self::RESTIC_VERSION, self::DOWNLOAD_URL.'SHA256SUMS');
+
         $client = HttpClient::create();
         $response = $client->request('GET', $url);
-        file_put_contents(self::SHA_SUMS_FILE, $response->getContent());
+        (new Filesystem())->dumpFile(self::SHA_SUMS_FILE, $response->getContent());
     }
 
     public function reset(): void
@@ -324,7 +338,9 @@ final class Restic
      */
     private function ensureBinary(): void
     {
-        if (file_exists($this->getResticBinary())) {
+        $fs = new Filesystem();
+
+        if ($fs->exists($this->getResticBinary())) {
             return;
         }
 
@@ -336,8 +352,6 @@ final class Restic
             throw new CouldNotDetermineBinaryException($uname);
         }
 
-        $fs = new Filesystem();
-
         // Cleanup binary directory first, so we don't keep old Restic releases
         $fs->remove($this->pathForResticDir('binary'));
         $fs->mkdir($this->pathForResticDir('binary'));
@@ -346,6 +360,7 @@ final class Restic
         $binarySourceName = str_replace('{version}', self::RESTIC_VERSION, $binarySourceName);
         $targetCompressed = $this->pathForResticDir('binary', $binarySourceName);
         $targetUncompressed = $this->getResticBinary();
+
         $fs->dumpFile($targetCompressed, '');
         $fs->dumpFile($targetUncompressed, '');
 
@@ -359,6 +374,7 @@ final class Restic
             foreach ($client->stream($response) as $chunk) {
                 fwrite($fileHandle, $chunk->getContent());
             }
+
             fclose($fileHandle);
         } catch (\Symfony\Contracts\HttpClient\Exception\ExceptionInterface $e) {
             $fs->remove($targetCompressed);
@@ -456,6 +472,7 @@ final class Restic
         while (!feof($compressedHandle)) {
             fwrite($targetHandle, bzread($compressedHandle, 4096));
         }
+
         bzclose($compressedHandle);
         fclose($targetHandle);
     }
@@ -476,6 +493,7 @@ final class Restic
         }
 
         fclose($targetHandle);
+
         $zip->close();
     }
 
@@ -484,11 +502,13 @@ final class Restic
      */
     private function validateFileIntegrity(string $targetCompressed, string $binarySourceName): void
     {
-        if (!file_exists(self::SHA_SUMS_FILE)) {
+        $fs = new Filesystem();
+
+        if (!$fs->exists(self::SHA_SUMS_FILE)) {
             throw new CouldNotVerifyFileIntegrityException('SHASUM file does not exist.');
         }
 
-        if (!file_exists($targetCompressed)) {
+        if (!$fs->exists($targetCompressed)) {
             throw new CouldNotVerifyFileIntegrityException(\sprintf('File download for binary source file "%s" was not complete.', $binarySourceName));
         }
 
