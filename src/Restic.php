@@ -29,7 +29,7 @@ use Terminal42\Restic\Exception\ExceptionInterface;
 
 final class Restic
 {
-    public const RESTIC_VERSION = '0.19.1';
+    public const RESTIC_VERSION = '0.20.0';
 
     private const RESTIC_BINARY_NAME = 'restic_'.self::RESTIC_VERSION;
 
